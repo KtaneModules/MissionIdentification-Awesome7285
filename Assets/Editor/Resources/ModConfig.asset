@@ -20,6 +20,6 @@ MonoBehaviour:
     and (most) code from Plant Identification by BigCrunch22\r!\n\rScreenshots taken
     by me.\nShoutouts to all the mission creators and CBS maintainers!\nUn-shoutouts
     to the person who makes a lookup table manual for this module: you are cringe\n"
-  version: 1.0
+  version: 1.0.1
   outputFolder: build
   previewImage: {fileID: 2800000, guid: de78b39683eae9744bbbf2df9d032597, type: 3}
