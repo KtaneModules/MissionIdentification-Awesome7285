@@ -1,5 +1,5 @@
 from PIL import Image
-import shutil, os
+import os
 
 folder = r"F:\New Computer\Unity\MISSION IMAGES/Raw/"
 out = r"F:\New Computer\Unity\MISSION IMAGES/Resized/"

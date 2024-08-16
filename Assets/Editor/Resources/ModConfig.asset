@@ -14,12 +14,11 @@ MonoBehaviour:
   id: MissionIdentification
   title: Mission Identification
   author: Awesome7285
-  description: "Another ID module, I'm reacting with :neutral_face: in #mods-major.\nIdentify
-    the bomb screenshot shown of a mission from the Challenge Bomb website (bombs.samfun.dev)!\nCurrently
-    supports 164 unique mission images. Expect updates with more images.\n\nModel,
-    and (most) code from Plant Identification by BigCrunch22\r!\n\rScreenshots taken
-    by me.\nShoutouts to all the mission creators and CBS maintainers!\nUn-shoutouts
-    to the person who makes a lookup table manual for this module: you are cringe\n"
-  version: 1.0.1
+  description: "Identify the bomb screenshot shown of a mission from the Challenge
+    Bomb website (bombs.samfun.dev)!\nCurrently supports 308 unique mission images.
+    Expect updates with more images.\n\nModel, and (most) code from Plant Identification
+    by BigCrunch22\r!\n\rScreenshots taken by me.\nShoutouts to all the mission creators
+    and CBS maintainers!\n"
+  version: 1.0.2
   outputFolder: build
   previewImage: {fileID: 2800000, guid: de78b39683eae9744bbbf2df9d032597, type: 3}
