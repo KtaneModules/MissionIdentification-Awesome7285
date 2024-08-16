@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -8,7 +9,7 @@ public class MissionIdentificationScript : MonoBehaviour
     public KMAudio Audio;
     public KMBombInfo Bomb;
     public KMBombModule Module;
-    public AudioSource SecondMusic;
+    //public AudioSource SecondMusic;
     
     public KMSelectable[] TypableText;
     public KMSelectable[] ShiftButtons;
@@ -39,7 +40,7 @@ public class MissionIdentificationScript : MonoBehaviour
     public AudioClip[] Buffer;
     public KMAudio.KMAudioRef bufferSound;
 
-    public static bool playingIntro = false;
+    public static bool playingIntroMissionID = false;
     
     string[][] ChangedText = new string[4][]{
         new string[47] {"`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/"},
@@ -75,6 +76,7 @@ public class MissionIdentificationScript : MonoBehaviour
     bool Playable = false, Enterable = false, Toggleable = true;
     private bool focused;
     int Stages = 0;
+    List<int> SizeChangeValues = new List<int> {-1};
     
     //Logging
     static int moduleIdCounter = 1;
@@ -158,21 +160,18 @@ public class MissionIdentificationScript : MonoBehaviour
     // ok this one actually plays the audio
     IEnumerator Reintroduction()
     {
-        if (!playingIntro)
+        if (!playingIntroMissionID)
         {
             Audio.PlaySoundAtTransform(NotBuffer[0].name, transform);
-            playingIntro = true;
+            playingIntroMissionID = true;
         }
         Intro = true;
         Debug.LogFormat("[Mission Identification #{0}] All available experts please report to room A-9!", moduleId);
 
         yield return new WaitForSecondsRealtime(NotBuffer[0].length);
-        // while (SecondMusic.isPlaying)
-        // {
-        //     yield return new WaitForSecondsRealtime(0.01f);
-        // }
         Playable = true;
         Intro = false;
+        playingIntroMissionID = false;
     }
     
     // Type key into display, requires Playable and Enterable to be true
@@ -197,7 +196,7 @@ public class MissionIdentificationScript : MonoBehaviour
             if (width > 0.28)
             {
                 TextBox.fontSize -= 15;
-                //TextBox.text = TextBox.text.Remove(TextBox.text.Length - 1);
+                SizeChangeValues.Add(TextBox.text.Length);
             }
         }
     }
@@ -212,6 +211,10 @@ public class MissionIdentificationScript : MonoBehaviour
             if (TextBox.text.Length != 0)
             {
                 TextBox.text = TextBox.text.Remove(TextBox.text.Length - 1);
+                if (TextBox.text.Length < SizeChangeValues.Last()) {
+                    TextBox.fontSize += 15;
+                    SizeChangeValues.RemoveAt(SizeChangeValues.Count - 1);
+                }
             }
         }
     }
@@ -234,12 +237,13 @@ public class MissionIdentificationScript : MonoBehaviour
             }
             width =  width * TextBox.characterSize * 0.1f;
             
-            if (width < 0.28f && TextBox.text.Length != 0 && TextBox.text[TextBox.text.Length - 1].ToString() != " ")
+            if (TextBox.text.Length != 0 && TextBox.text[TextBox.text.Length - 1].ToString() != " ")
             {
                 TextBox.text += " ";
                 if (width > 0.28)
                 {
-                    TextBox.text = TextBox.text.Remove(TextBox.text.Length - 1);
+                    TextBox.fontSize -= 15;
+                    SizeChangeValues.Add(TextBox.text.Length);
                 }
             }
         }
@@ -251,8 +255,8 @@ public class MissionIdentificationScript : MonoBehaviour
         Border.AddInteractionPunch(.2f);
         if (Playable && Toggleable)
         {
-            //StartCoroutine(PlayTheQueue());
-            PlayTheQueue();
+            StartCoroutine(PlayTheQueue());
+            //PlayTheQueue();
         }
     }
     
@@ -299,22 +303,18 @@ public class MissionIdentificationScript : MonoBehaviour
     }
     
     // Show image, wait 5 seconds, hide image
-    void PlayTheQueue()
+    IEnumerator PlayTheQueue()
     {
         Toggleable = false;
-        //Playable = false;
         Debug.LogFormat("[Mission Identification #{0}] The mission's name that was shown: {1}", moduleId, FixIdentifierName());
         SeedPacket.sprite = SeedPacketIdentifier[Unique[Stages]];
-        //SeedPacket.material = ImageLighting[1];
-        //SeedPacket.transform.localScale(new Vector3(2, 2, 2)); //0.15, 0.02, 0.02
-        //bufferSound = Audio.PlaySoundAtTransformWithRef(Buffer[Random.Range(0,5)].name, transform);
-        SecondMusic.clip = Buffer[Random.Range(0,5)];
-        SecondMusic.Play();
-        //yield return new WaitForSecondsRealtime(5f);
-        //SeedPacket.sprite = DefaultSprite;
-        //SeedPacket.material = ImageLighting[0];
-        //Playable = true;
+        AudioClip chosenTrack = Buffer[Random.Range(0,5)];
+        bufferSound = Audio.PlaySoundAtTransformWithRef(chosenTrack.name, transform);
+        // SecondMusic.clip = Buffer[Random.Range(0,5)];
+        // SecondMusic.Play();
         Enterable = true;
+        yield return new WaitForSecondsRealtime(chosenTrack.length);
+        bufferSound.StopSound();
     }
 
     string FixIdentifierName() {
@@ -346,8 +346,8 @@ public class MissionIdentificationScript : MonoBehaviour
         !!g = greater than
         !!u = qUote mark
         */
-        //bufferSound.StopSound();
-        SecondMusic.Stop();
+        bufferSound.StopSound();
+        //SecondMusic.Stop();
         if (Analysis == FixIdentifierName())
         {
             TextBox.text = "";
@@ -359,31 +359,13 @@ public class MissionIdentificationScript : MonoBehaviour
             {
                 Animating1 = true;
                 Debug.LogFormat("[Mission Identification #{0}] You correctly guessed the mission three times in a row. GG!", moduleId);
-                SecondMusic.clip = NotBuffer[3];
-                SecondMusic.Play();
-                StartCoroutine(RoulleteToWin());
-                while (SecondMusic.isPlaying)
-                {
-                    LightBulbs[0].material = TheLights[0];
-                    LightBulbs[1].material = TheLights[0];
-                    LightBulbs[2].material = TheLights[1];
-                    yield return new WaitForSecondsRealtime(0.02f);
-                    LightBulbs[0].material = TheLights[0];
-                    LightBulbs[1].material = TheLights[1];
-                    LightBulbs[2].material = TheLights[0];
-                    yield return new WaitForSecondsRealtime(0.02f);
-                    LightBulbs[0].material = TheLights[1];
-                    LightBulbs[1].material = TheLights[0];
-                    LightBulbs[2].material = TheLights[0];
-                    yield return new WaitForSecondsRealtime(0.02f);
-                }
-                    LightBulbs[0].material = TheLights[1];
-                    LightBulbs[1].material = TheLights[1];
-                    LightBulbs[2].material = TheLights[1];
-                    SeedPacket.sprite = SolvedSprite;
-                    Debug.LogFormat("[Mission Identification #{0}] The module is done.", moduleId);
-                    Module.HandlePass();
-                    Animating1 = false;
+                Audio.PlaySoundAtTransform(NotBuffer[3].name, transform);
+                // SecondMusic.clip = NotBuffer[3];
+                // SecondMusic.Play();
+                StartCoroutine(RoulleteToWin(NotBuffer[3].length));
+                StartCoroutine(SolveAnimation(NotBuffer[3].length));
+                // yield return new WaitForSecondsRealtime(NotBuffer[3].length);
+                // bufferSound.StopSound();
             }
             
             else
@@ -391,20 +373,12 @@ public class MissionIdentificationScript : MonoBehaviour
                 Debug.LogFormat("[Mission Identification #{0}] The text matches the name of the mission. Good job!", moduleId);
                 Animating1 = true;
                 SeedPacket.sprite = Check;
-                SecondMusic.clip = NotBuffer[2];
-                SecondMusic.Play();
-                while (SecondMusic.isPlaying)
-                {
-                    LightBulbs[Stages-1].material = TheLights[1];
-                    yield return new WaitForSecondsRealtime(0.075f);
-                    LightBulbs[Stages-1].material = TheLights[0];
-                    yield return new WaitForSecondsRealtime(0.075f);
-                }
-                LightBulbs[Stages-1].material = TheLights[1];
-                SeedPacket.sprite = DefaultSprite;
-                Playable = true;
-                Toggleable = true;
-                Animating1 = false;
+                Audio.PlaySoundAtTransform(NotBuffer[2].name, transform);
+                // SecondMusic.clip = NotBuffer[2];
+                // SecondMusic.Play();
+                StartCoroutine(CorrectAnimation(1f));
+                yield return new WaitForSecondsRealtime(NotBuffer[2].length);
+                
             }
         }
         
@@ -468,13 +442,85 @@ public class MissionIdentificationScript : MonoBehaviour
         }
     }
     
-    IEnumerator RoulleteToWin()
+    // IEnumerator RoulleteToWin()
+    // {
+    //     while (roulleteHappening)
+    //     {
+    //         SeedPacket.sprite = SeedPacketIdentifier[Random.Range(0, SeedPacketIdentifier.Count())];
+    //         yield return new WaitForSecondsRealtime(0.1f);
+    //     }
+    // }
+    IEnumerator RoulleteToWin(float length)
     {
-        while (SecondMusic.isPlaying)
+        float currentTime = 0;
+        while (currentTime < length)
         {
-            SeedPacket.sprite = SeedPacketIdentifier[Random.Range(0, SeedPacketIdentifier.Count())];
-            yield return new WaitForSecondsRealtime(0.1f);
+            currentTime += Time.deltaTime;
+
+            for (int x = 0; x < 3; x++)
+            {
+                SeedPacket.sprite = SeedPacketIdentifier[Unique[x]];
+                yield return new WaitForSecondsRealtime(0.15f);
+                currentTime += .15f;
+            }
+
+            yield return null;
         }
+
+    }
+
+    IEnumerator SolveAnimation(float length) {
+        float currentTime = 0;
+        while (currentTime < length)
+        {
+            currentTime += Time.deltaTime;
+
+            LightBulbs[0].material = TheLights[0];
+            LightBulbs[1].material = TheLights[0];
+            LightBulbs[2].material = TheLights[1];
+            yield return new WaitForSecondsRealtime(0.02f);
+            LightBulbs[0].material = TheLights[0];
+            LightBulbs[1].material = TheLights[1];
+            LightBulbs[2].material = TheLights[0];
+            yield return new WaitForSecondsRealtime(0.02f);
+            LightBulbs[0].material = TheLights[1];
+            LightBulbs[1].material = TheLights[0];
+            LightBulbs[2].material = TheLights[0];
+            yield return new WaitForSecondsRealtime(0.02f);
+
+            currentTime += .06f;
+            yield return null;
+        }
+        LightBulbs[0].material = TheLights[1];
+        LightBulbs[1].material = TheLights[1];
+        LightBulbs[2].material = TheLights[1];
+        SeedPacket.sprite = SolvedSprite;
+        Debug.LogFormat("[Mission Identification #{0}] The module is done.", moduleId);
+        Module.HandlePass();
+        Animating1 = false;
+    }
+
+    IEnumerator CorrectAnimation(float length) {
+        float currentTime = 0;
+        while (currentTime < length)
+        {
+            currentTime += Time.deltaTime;
+
+            LightBulbs[Stages-1].material = TheLights[1];
+            yield return new WaitForSecondsRealtime(0.075f);
+            LightBulbs[Stages-1].material = TheLights[0];
+            yield return new WaitForSecondsRealtime(0.075f);
+
+            currentTime += .05f;
+            yield return null;
+        }
+
+        LightBulbs[Stages-1].material = TheLights[1];
+        SeedPacket.sprite = DefaultSprite;
+        //bufferSound.StopSound();
+        Playable = true;
+        Toggleable = true;
+        Animating1 = false;
     }
     
     // Change some keys depending on focus
@@ -767,7 +813,6 @@ public class MissionIdentificationScript : MonoBehaviour
         if (StrikeIncoming)
         {
             StopAllCoroutines();
-            SecondMusic.Stop();
             LightBulbs[0].material = TheLights[1];
             LightBulbs[1].material = TheLights[1];
             LightBulbs[2].material = TheLights[1];
